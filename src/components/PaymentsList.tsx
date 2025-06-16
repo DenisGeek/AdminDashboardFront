@@ -12,6 +12,7 @@ export default function PaymentsList({ payments }: PaymentsListProps) {
             <th>ID</th>
             <th>Клиент</th>
             <th>Сумма</th>
+            <th>Валюта</th>
             <th>Дата</th>
             <th>Описание</th>
             <th>Статус</th>
@@ -20,9 +21,10 @@ export default function PaymentsList({ payments }: PaymentsListProps) {
         <tbody>
           {payments.map((payment) => (
             <tr key="{payment.id}">
-              <td>{payment.id.substring(0, 6)}...</td>
+              <td>{payment.id}</td>
               <td>{payment.clientId.substring(0, 6)}...</td>
               <td>{payment.amount.toFixed(2)}</td>
+              <td>{payment.currency}</td>
               <td>{new Date(payment.date).toLocaleDateString()}</td>
               <td>{payment.description || '-'}</td>
               <td>{payment.status}</td>

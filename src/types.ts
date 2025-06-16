@@ -24,6 +24,7 @@ export interface Payment {
   id: string
   clientId: string
   amount: number
+  currency: string
   date: string
   description: string
   status: string
