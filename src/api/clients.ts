@@ -1,7 +1,7 @@
 import type { Client } from '../types'
 
 export const getClients = async (): Promise<Client[]> => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('access_token')
   const response = await fetch('/clients', {
     // method: 'GET',
     headers: {

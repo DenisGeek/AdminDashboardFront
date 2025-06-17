@@ -20,7 +20,7 @@ export default function PaymentsList({ payments }: PaymentsListProps) {
         </thead>
         <tbody>
           {payments.map((payment) => (
-            <tr key="{payment.id}">
+            <tr key={`${payment.id}`}>
               <td>{payment.id}</td>
               <td>{payment.clientId.substring(0, 6)}...</td>
               <td>{payment.amount.toFixed(2)}</td>

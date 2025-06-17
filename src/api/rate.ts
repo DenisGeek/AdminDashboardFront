@@ -1,36 +1,36 @@
+// src/api/rate.ts
+import axios from 'axios'
 import type { Rate, UpdateRateRequest } from '../types'
+import apiClient from './client'
 
 export const getRate = async (): Promise<Rate> => {
-  const token = localStorage.getItem('token')
-  const response = await fetch('http://localhost:5000/rate', {
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error('Ошибка получения курса')
+  try {
+    const response = await apiClient.get('/rate')
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message ||
+          error.response?.data?.detail ||
+          'Ошибка получения курса'
+      )
+    }
+    throw new Error('Неизвестная ошибка при получении курса')
   }
-
-  return response.json()
 }
 
 export const updateRate = async (data: UpdateRateRequest): Promise<Rate> => {
-  const token = localStorage.getItem('token')
-  const response = await fetch('http://localhost:5000/rate', {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  })
-
-  if (!response.ok) {
-    throw new Error('Ошибка обновления курса')
+  try {
+    const response = await apiClient.post('/rate', data)
+    return response.data
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message ||
+          error.response?.data?.detail ||
+          'Ошибка обновления курса'
+      )
+    }
+    throw new Error('Неизвестная ошибка при обновлении курса')
   }
-
-  return response.json()
 }

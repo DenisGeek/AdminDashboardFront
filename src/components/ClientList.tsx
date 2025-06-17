@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import apiClient from '../api/client'
 
 interface Client {
   id: string
@@ -14,22 +15,20 @@ export default function ClientList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const fetchClients = async () => {
+    try {
+      const response = await apiClient.get('/clients')
+      return response.data
+    } catch (error) {
+      console.error('Failed to fetch clients:', error)
+      throw error
+    }
+  }
+
   useEffect(() => {
-    const fetchClients = async () => {
+    const loadClients = async () => {
       try {
-        const token = localStorage.getItem('token')
-        const response = await fetch('http://localhost:5000/clients', {
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if (!response.ok) {
-          throw new Error('Ошибка загрузки клиентов')
-        }
-
-        const data = await response.json()
+        const data = await fetchClients()
         setClients(data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Неизвестная ошибка')
@@ -38,11 +37,12 @@ export default function ClientList() {
       }
     }
 
-    fetchClients()
+    loadClients()
   }, [])
 
-  if (loading) return <div>Загрузка...</div>
-  if (error) return <div className="error">{error}</div>
+  if (loading) return <div className="loading">Загрузка клиентов...</div>
+  if (error) return <div className="error">Ошибка: {error}</div>
+  if (clients.length === 0) return <div>Нет данных о клиентах</div>
 
   return (
     <div className="client-list">
@@ -59,7 +59,7 @@ export default function ClientList() {
         </thead>
         <tbody>
           {clients.map((client) => (
-            <tr key={client.id}>
+            <tr key={`${client.id}-${client.createdAt}`}>
               <td>{client.id}</td>
               <td>{client.name}</td>
               <td>{client.email}</td>
