@@ -1,52 +1,77 @@
 import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { refreshTokens } from '../api/auth'
+import { useEffect, useState } from 'react'
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  // 1. Логируем все значения из localStorage
-  console.log('[ProtectedRoute] Checking auth...')
-  console.log('[ProtectedRoute] localStorage:', {
-    access_token: localStorage.getItem('access_token'),
-    refresh_token: localStorage.getItem('refresh_token'),
-    user: localStorage.getItem('user'),
-    token_expires: localStorage.getItem('token_expires'),
-  })
+  const [isAuthChecked, setIsAuthChecked] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // 2. Проверяем токен
-  const token = localStorage.getItem('access_token')
-  if (!token) {
-    console.error('[ProtectedRoute] No access_token found')
-    return <Navigate to="/login" replace />
-  }
+  useEffect(() => {
+    const checkAuth = () => {
+      console.log('[ProtectedRoute] Checking auth...')
 
-  // 3. Парсим пользователя с обработкой ошибок
-  let user = null
-  try {
-    const userString = localStorage.getItem('user')
-    if (userString) {
-      user = JSON.parse(userString)
-      console.log('[ProtectedRoute] Parsed user:', user)
+      // 1. Проверяем токен
+      const token = localStorage.getItem('access_token')
+      if (!token) {
+        console.error('[ProtectedRoute] No access_token found')
+        setIsAuthenticated(false)
+        setIsAuthChecked(true)
+        return
+      }
+
+      // 2. Парсим пользователя
+      let user = null
+      try {
+        const userString = localStorage.getItem('user')
+        if (userString) user = JSON.parse(userString)
+      } catch (e) {
+        console.error('[ProtectedRoute] Failed to parse user:', e)
+      }
+
+      // 3. Проверяем срок действия
+      if (user?.exp) {
+        const isExpired = user.exp * 1000 < Date.now()
+
+        if (isExpired) {
+          const refreshToken = localStorage.getItem('refresh_token')
+          if (!refreshToken) {
+            clearAuthData()
+            setIsAuthenticated(false)
+            setIsAuthChecked(true)
+            return
+          }
+
+          refreshTokens(refreshToken)
+            .then(({ tokens, user }) => {
+              localStorage.setItem('access_token', tokens.access)
+              localStorage.setItem('refresh_token', tokens.refresh)
+              localStorage.setItem('user', JSON.stringify(user))
+              localStorage.setItem('token_expires', user.exp.toString())
+              console.log('[ProtectedRoute] Data saved to localStorage')
+              setIsAuthenticated(true)
+            })
+            .catch(() => {
+              clearAuthData()
+              setIsAuthenticated(false)
+            })
+            .finally(() => setIsAuthChecked(true))
+          return
+        }
+      }
+
+      setIsAuthenticated(true)
+      setIsAuthChecked(true)
     }
-  } catch (e) {
-    console.error('[ProtectedRoute] Failed to parse user:', e)
+
+    checkAuth()
+  }, [])
+
+  if (!isAuthChecked) {
+    return null // или индикатор загрузки
   }
 
-  // 4. Проверяем срок действия
-  if (user?.exp) {
-    const isExpired = user.exp * 1000 < Date.now()
-    console.log(`[ProtectedRoute] Token expiration check: 
-      Expires: ${new Date(user.exp * 1000)}
-      Current: ${new Date()}
-      Is expired: ${isExpired}`)
-
-    if (isExpired) {
-      console.error('[ProtectedRoute] Token expired')
-      clearAuthData()
-      return <Navigate to="/login" replace />
-    }
-  }
-
-  console.log('[ProtectedRoute] Access granted')
-  return children
+  return isAuthenticated ? children : <Navigate to="/login" replace />
 }
 
 function clearAuthData() {

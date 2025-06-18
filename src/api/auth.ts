@@ -54,6 +54,53 @@ export const login = async (
   }
 }
 
+export const refreshTokens = (refreshToken: string) => {
+  console.log('[client] refresh tokens - attempt')
+
+  return fetch('http://localhost:5000/auth/refresh', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refreshToken }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        return response.json().then(
+          (errorData) => {
+            throw new Error(
+              errorData.message ||
+                errorData.detail ||
+                `Refresh failed with status ${response.status}`
+            )
+          },
+          () => {
+            throw new Error(`Refresh failed with status ${response.status}`)
+          }
+        )
+      }
+      return response.json()
+    })
+    .then((tokens: AuthResponse) => {
+      if (!tokens.access || !tokens.refresh) {
+        throw new Error('Invalid server response - tokens missing')
+      }
+
+      const user = parseJwt(tokens.access)
+
+      console.log('[client] refresh tokens - success (fetched new tokens)')
+
+      return { tokens, user }
+    })
+    .catch((error) => {
+      console.log('[client] refresh tokens - failed')
+      if (error instanceof Error) {
+        throw new Error(`Refresh failed: ${error.message}`)
+      }
+      throw new Error('Unknown error occurred during refresh')
+    })
+}
+
 export const parseJwt = (token: string): UserData => {
   try {
     const base64Url = token.split('.')[1]
